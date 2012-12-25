@@ -28,6 +28,18 @@
 #ifndef __INTEL_HEX_H
 #define __INTEL_HEX_H
 
-int parse_ihex_file(const char *file, int (*callback)(unsigned int address, unsigned char *data, int len));
+struct ihex_row {
+	uint32_t addr;
+	uint32_t count;
+	uint8_t *data;
+};
+
+struct ihex_file {
+	uint32_t row_cnt;
+	struct ihex_row *rows;
+};
+
+int parse_ihex_file(const char *file, struct ihex_file *file_data, int (*callback)(unsigned int address, unsigned char *data, int len));
+void free_ihex_file(struct ihex_file *file_data);
 
 #endif

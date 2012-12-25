@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <ihex.h>
 
 int read_record(FILE *fd, char *buf, int size) {
 	char c;
@@ -55,7 +56,7 @@ int read_record(FILE *fd, char *buf, int size) {
 		}
 	}
 
-	return 1;
+	return 0;
 }
 	
 void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
@@ -72,7 +73,7 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 }
 	
 
-int parse_ihex_file(const char *file, int (*callback)(unsigned int address, unsigned char *data, int len)) {
+ parse_ihex_file(const char *file, struct ihex_file *file_data, int (*callback)(unsigned int address, unsigned char *data, int len)) {
 	FILE *fd;
 	uint32_t base_addr = 0;
 	int len, ret, line = 1;
@@ -80,6 +81,11 @@ int parse_ihex_file(const char *file, int (*callback)(unsigned int address, unsi
 
 	if (!(fd = fopen(file, "r")))
 		return 1;
+
+	if (file_data) {
+		file_data->row_cnt = 0;
+		file_data->rows = NULL;
+	}
 	
 	while ((len = read_record(fd, buf, sizeof(buf))) > 0) {
 		uint8_t start, count, type, checksum, data[64];
@@ -103,7 +109,18 @@ int parse_ihex_file(const char *file, int (*callback)(unsigned int address, unsi
 				printf("bad checksum on line %d: %X != %X\n", line, (-sum) & 0xFF, checksum);
 				return 1;
 			}
-			callback(base_addr | address, data, count);
+		
+			if (file_data) {
+				file_data->rows = realloc(file_data->rows, sizeof(struct ihex_row) * (file_data->row_cnt + 1));
+				file_data->rows[file_data->row_cnt].addr = base_addr | address;
+				file_data->rows[file_data->row_cnt].count = count;
+				file_data->rows[file_data->row_cnt].data = malloc(count);
+				memcpy(file_data->rows[file_data->row_cnt].data, data, count);
+				file_data->row_cnt++;
+			}
+
+			if (callback != NULL)
+				callback(base_addr | address, data, count);
 			break;
 		case 0x1:
 			return 0;
@@ -119,4 +136,10 @@ int parse_ihex_file(const char *file, int (*callback)(unsigned int address, unsi
 	}
 
 	return 0;
+}
+
+void free_ihex_file(struct ihex_file *file_data) {
+	for (int i = 0; i < file_data->row_cnt; i++)
+		free(file_data->rows[i].data);
+	free(file_data->rows);
 }
