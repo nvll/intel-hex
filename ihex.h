@@ -28,15 +28,15 @@
 #ifndef __INTEL_HEX_H
 #define __INTEL_HEX_H
 
-struct ihex_row {
+struct ihex_segment {
 	uint32_t addr;
-	uint32_t count;
+	uint32_t len;
 	uint8_t *data;
 };
 
 struct ihex_file {
-	uint32_t row_cnt;
-	struct ihex_row *rows;
+	uint32_t segment_cnt;
+	struct ihex_segment *segments;
 };
 
 int parse_ihex_file(const char *file, struct ihex_file *file_data, int (*callback)(unsigned int address, unsigned char *data, int len));

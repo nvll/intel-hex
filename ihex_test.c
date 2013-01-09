@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ihex.h>
-
+/*
 // Simple  test binary for reading ihex files
 void dump_hex(uint8_t *data, int len) {
 	for (int x = 0; x < len; x++) {
@@ -39,20 +39,20 @@ void dump_hex(uint8_t *data, int len) {
 	}
 	printf("\n");
 }
-
+*/
 int row_callback(unsigned int address, unsigned char *data, int len) {
-	printf("address 0x%08X, len %d\n", address, len);
-	dump_hex(data, len);
+//	printf("address 0x%08X, len %d\n", address, len);
+//	dump_hex(data, len);
 	return 0;
 }
-
+/*
 void print_ihex_struct(struct ihex_file *file_data) {
 	for (int i = 0; i < file_data->row_cnt; i++) {
 		printf("address 0x%08X, len %d\n", file_data->rows[i].addr, file_data->rows[i].count);
 		dump_hex(file_data->rows[i].data, file_data->rows[i].count);
 	}
 }
-
+*/
 int main(int argc, char *argv[]) {
 	struct ihex_file file;
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 	printf("data from callback: \n");
 	parse_ihex_file(argv[1], &file, row_callback);
 	printf("\ndata from structure: \n");
-	print_ihex_struct(&file);
+	//print_ihex_struct(&file);
 	free_ihex_file(&file);
 
 	return 0;

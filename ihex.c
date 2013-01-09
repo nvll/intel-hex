@@ -73,9 +73,10 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 }
 	
 
- parse_ihex_file(const char *file, struct ihex_file *file_data, int (*callback)(unsigned int address, unsigned char *data, int len)) {
+int parse_ihex_file(const char *file, struct ihex_file *file_data, int (*callback)(unsigned int address, unsigned char *data, int len)) {
 	FILE *fd;
-	uint32_t base_addr = 0;
+	uint32_t base_addr = 0, next_addr = 0;
+    uint32_t allocated_segments = 0;
 	int len, ret, line = 1;
 	char buf[512];
 
@@ -83,8 +84,9 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 		return 1;
 
 	if (file_data) {
-		file_data->row_cnt = 0;
-		file_data->rows = NULL;
+		file_data->segment_cnt = 0;
+        allocated_segments = 32;
+		file_data->segments = malloc(sizeof(struct ihex_segment) * allocated_segments);
 	}
 	
 	while ((len = read_record(fd, buf, sizeof(buf))) > 0) {
@@ -99,6 +101,14 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 
 		switch (type) {
 		case 0x0:
+            if (base_addr + address != next_addr) {
+                printf("address jump, expected %X got %X\n", next_addr, base_addr + address);
+            }
+            printf("count %d\n", count);
+            next_addr = base_addr + address + count;
+
+            /*
+
 			read_hex_ints(buf, data, count, &offset);
 			read_hex_ints(buf, &checksum, 1, &offset);
 			sum = count + address + (address >> 8) + type;
@@ -111,7 +121,7 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 			}
 		
 			if (file_data) {
-				file_data->rows = realloc(file_data->rows, sizeof(struct ihex_row) * (file_data->row_cnt + 1));
+				file_data->rows = realloc(file_data->rows, sizeof(struct ihex_row) * (file_data->row_cn + 1));
 				file_data->rows[file_data->row_cnt].addr = base_addr | address;
 				file_data->rows[file_data->row_cnt].count = count;
 				file_data->rows[file_data->row_cnt].data = malloc(count);
@@ -121,14 +131,20 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 
 			if (callback != NULL)
 				callback(base_addr | address, data, count);
+            */
 			break;
 		case 0x1:
 			return 0;
 			break;
 		case 0x4:
+            file_data->segment_cnt++;
+
+
 			read_hex_ints(buf, (uint8_t *)&base_addr, 4, &offset);
 			base_addr = htons(base_addr);
 			base_addr <<= 16;
+            next_addr = base_addr + address;
+            printf("new segment: 0x%08X\n", base_addr);
 			break;
 		}
 
@@ -139,7 +155,9 @@ void read_hex_ints(char *buf, uint8_t *data, int len, uint32_t *offset) {
 }
 
 void free_ihex_file(struct ihex_file *file_data) {
+    /*
 	for (int i = 0; i < file_data->row_cnt; i++)
 		free(file_data->rows[i].data);
 	free(file_data->rows);
+    */
 }
