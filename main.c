@@ -1,6 +1,8 @@
+// vim: set expandtab:ts=4:sw=4:sts=4
 /*
  * Copyright (c) 2013, Chris Anderson
  * All rights reserved.
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
@@ -19,24 +21,42 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef __INTEL_HEX_H
-#define __INTEL_HEX_H
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include "ihex.h"
 
-struct ihex_section {
-    uint32_t addr;
-    uint32_t len;
-    uint32_t alloc_len;
-    uint8_t *data;
-};
+// Simple test binary for reading ihex files
+void dump_hex(uint8_t *data, int len) {
+    for (int x = 0; x < len; x++) {
+        printf(" %02x", data[x]);
+    }
+    printf("\n");
+}
 
-struct ihex_file {
-    uint32_t section_cnt;
-    uint32_t alloc_section_cnt;
-    struct ihex_section *sections;
-};
+void print_ihex_struct(struct ihex_file *file_data) {
+    for (int i = 0; i < file_data->section_cnt; i++) {
+        struct ihex_section *s = &file_data->sections[i];
+        printf("address 0x%08X, len %d\n", s->addr, s->len);
+        for (int y = 0; y < s->len; y += 16) {
+            printf("%08x:", s->addr + y);
+            dump_hex(s->data + y, (y + 16 < s->len) ? 16 : (s->len - y));
+        }
+    }
+}
 
-int parse_ihex_file(const char *file, struct ihex_file *file_data);
-void free_ihex_file(struct ihex_file *file_data);
+int main(int argc, char *argv[]) {
+    struct ihex_file file;
 
-#endif
+    if (argc < 2) {
+        printf("usage: %s [ihex file]\n", argv[0]);
+        return 1;
+    }
+
+    parse_ihex_file(argv[1], &file);
+    print_ihex_struct(&file);
+    free_ihex_file(&file);
+
+    return 0;
+}
